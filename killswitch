@@ -1,0 +1,49 @@
+#!/bin/sh
+
+ICON_ON="✓"
+ICON_OFF="✗"
+
+get_status() {
+    if iptables -L KILL_SWITCH >/dev/null 2>&1; then
+        printf "%s\n" "$ICON_OFF"
+    else
+        printf "%s\n" "$ICON_ON"
+    fi
+}
+
+case "$1" in
+    --status)
+        get_status
+        ;;
+    --toggle)
+        if iptables -L KILL_SWITCH >/dev/null 2>&1; then
+		iptables -D INPUT -j KILL_SWITCH
+		iptables -D OUTPUT -j KILL_SWITCH
+		iptables -D FORWARD -j KILL_SWITCH
+		iptables -F KILL_SWITCH
+		iptables -X KILL_SWITCH
+		ip6tables -D INPUT -j KILL_SWITCH
+		ip6tables -D OUTPUT -j KILL_SWITCH
+		ip6tables -D FORWARD -j KILL_SWITCH
+		ip6tables -F KILL_SWITCH
+		ip6tables -X KILL_SWITCH
+        else
+		iptables -N KILL_SWITCH
+		iptables -A KILL_SWITCH -i lo -j ACCEPT
+		iptables -A KILL_SWITCH -o lo -j ACCEPT
+		iptables -A KILL_SWITCH -j DROP
+		iptables -I INPUT 1 -j KILL_SWITCH
+		iptables -I OUTPUT 1 -j KILL_SWITCH
+		iptables -I FORWARD 1 -j KILL_SWITCH
+		ip6tables -N KILL_SWITCH
+		ip6tables -A KILL_SWITCH -i lo -j ACCEPT
+		ip6tables -A KILL_SWITCH -o lo -j ACCEPT
+		ip6tables -A KILL_SWITCH -j DROP
+		ip6tables -I INPUT 1 -j KILL_SWITCH
+		ip6tables -I OUTPUT 1 -j KILL_SWITCH
+		ip6tables -I FORWARD 1 -j KILL_SWITCH
+        fi
+        get_status
+        ;;
+esac
+
