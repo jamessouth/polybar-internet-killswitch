@@ -1,10 +1,48 @@
 #!/bin/sh
 
-ON="✓"
+NFT="/usr/bin/nft"
+
+ON="✓" 
 OFF="✗"
 
-get_status() {
-    if iptables -nL KILLSWITCH >/dev/null 2>&1; then
+is_on() {
+    "$NFT" list table inet killswitch >/dev/null 2>&1
+}
+
+enable() {
+    "$NFT" -f - <<'EOF'
+flush table inet killswitch 2>/dev/null
+delete table inet killswitch 2>/dev/null
+
+table inet killswitch {
+    chain input {
+        type filter hook input priority -300; policy accept;
+        iif lo accept
+        drop
+    }
+
+    chain output {
+        type filter hook output priority -300; policy accept;
+        oif lo accept
+        drop
+    }
+
+    chain forward {
+        type filter hook forward priority -300; policy accept;
+        iif lo accept
+        oif lo accept
+        drop
+    }
+}
+EOF
+}
+
+disable() {
+    "$NFT" delete table inet killswitch >/dev/null 2>&1
+}
+
+status() {
+    if is_on; then
         printf "%s\n" "$OFF"
     else
         printf "%s\n" "$ON"
@@ -13,37 +51,14 @@ get_status() {
 
 case "$1" in
     --status)
-        get_status
+        status
         ;;
-    --toggle)
-        if iptables -nL KILLSWITCH >/dev/null 2>&1; then
-		iptables -D INPUT -j KILLSWITCH
-		iptables -D OUTPUT -j KILLSWITCH
-		iptables -D FORWARD -j KILLSWITCH
-		iptables -F KILLSWITCH
-		iptables -X KILLSWITCH
-		ip6tables -D INPUT -j KILLSWITCH
-		ip6tables -D OUTPUT -j KILLSWITCH
-		ip6tables -D FORWARD -j KILLSWITCH
-		ip6tables -F KILLSWITCH
-		ip6tables -X KILLSWITCH
-        else
-		iptables -N KILLSWITCH
-		iptables -A KILLSWITCH -i lo -j ACCEPT
-		iptables -A KILLSWITCH -o lo -j ACCEPT
-		iptables -A KILLSWITCH -j DROP
-		iptables -I INPUT 1 -j KILLSWITCH
-		iptables -I OUTPUT 1 -j KILLSWITCH
-		iptables -I FORWARD 1 -j KILLSWITCH
-		ip6tables -N KILLSWITCH
-		ip6tables -A KILLSWITCH -i lo -j ACCEPT
-		ip6tables -A KILLSWITCH -o lo -j ACCEPT
-		ip6tables -A KILLSWITCH -j DROP
-		ip6tables -I INPUT 1 -j KILLSWITCH
-		ip6tables -I OUTPUT 1 -j KILLSWITCH
-		ip6tables -I FORWARD 1 -j KILLSWITCH
-        fi
-        get_status
+    --on)
+        enable
+        status
+        ;;
+    --off)
+        disable
+        status
         ;;
 esac
-
