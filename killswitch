@@ -1,32 +1,19 @@
 #!/bin/sh
 
-NFT="/usr/bin/nft"
-
-ON="✓" 
-OFF="✗"
-
-is_on() {
-    "$NFT" list table inet killswitch >/dev/null 2>&1
-}
-
 enable() {
-    "$NFT" -f - <<'EOF'
-flush table inet killswitch 2>/dev/null
-delete table inet killswitch 2>/dev/null
-
+    nft -f - <<'EOF'
+destroy table inet killswitch
 table inet killswitch {
     chain input {
         type filter hook input priority -300; policy accept;
         iif lo accept
         drop
     }
-
     chain output {
         type filter hook output priority -300; policy accept;
         oif lo accept
         drop
     }
-
     chain forward {
         type filter hook forward priority -300; policy accept;
         iif lo accept
@@ -37,28 +24,22 @@ table inet killswitch {
 EOF
 }
 
-disable() {
-    "$NFT" delete table inet killswitch >/dev/null 2>&1
-}
-
-status() {
-    if is_on; then
-        printf "%s\n" "$OFF"
-    else
-        printf "%s\n" "$ON"
-    fi
-}
-
 case "$1" in
     --status)
-        status
+        :
         ;;
     --on)
         enable
-        status
         ;;
     --off)
-        disable
-        status
+	nft destroy table inet killswitch >/dev/null 2>&1
         ;;
 esac
+
+if nft list table inet killswitch >/dev/null 2>&1; then
+	printf '%s\n' "x"
+else
+	printf '%s\n' "✓"
+fi
+
+
