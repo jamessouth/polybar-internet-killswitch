@@ -26,8 +26,8 @@ EOF
 
 case "$1" in
     --status)
-        :
-        ;;
+	:
+	;;
     --on)
         enable
         ;;
