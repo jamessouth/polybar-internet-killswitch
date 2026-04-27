@@ -2,6 +2,7 @@
 
 
 
+
 enable() {
     nft -f - <<'EOF'
 destroy table inet killswitch
