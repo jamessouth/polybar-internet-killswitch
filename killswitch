@@ -1,9 +1,5 @@
 #!/bin/sh
 
-
-
-
-
 enable() {
     nft -f - <<'EOF'
 destroy table inet killswitch
@@ -45,5 +41,4 @@ if nft list table inet killswitch >/dev/null 2>&1; then
 else
 	printf '%s\n' "✓"
 fi
-
 
